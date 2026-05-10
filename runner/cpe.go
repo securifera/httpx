@@ -178,6 +178,23 @@ func appendUnique(slice []CPEInfo, info CPEInfo) []CPEInfo {
 	return append(slice, info)
 }
 
+// techCPEWithVersion takes a CPE string from wappalyzergo's fingerprint database
+// (which uses '*' as the version field) and, when a concrete version has been
+// detected, substitutes it into the version component of the CPE 2.3 string.
+// CPE 2.3 format: cpe:2.3:part:vendor:product:VERSION:update:edition:...
+func techCPEWithVersion(cpeStr, version string) string {
+	if version == "" {
+		return cpeStr
+	}
+	parts := strings.Split(cpeStr, ":")
+	// Minimum well-formed CPE 2.3 has at least 6 colon-separated components.
+	if len(parts) >= 6 {
+		parts[5] = strings.ToLower(strings.ReplaceAll(version, " ", "_"))
+		return strings.Join(parts, ":")
+	}
+	return cpeStr
+}
+
 func (d *CPEDetector) Detect(title, body, faviconHash string) []CPEInfo {
 	seen := make(map[string]bool)
 	var results []CPEInfo

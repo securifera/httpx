@@ -2601,6 +2601,37 @@ retry:
 		}
 	}
 
+        // Augment CPE results with entries derived from wappalyzer-detected
+        // technologies. AppInfo already carries the CPE from the fingerprint
+        // database; if a version was detected (tech entry format "Name:version")
+        // substitute it into the CPE version field instead of the wildcard.
+        {
+                seenCPEs := make(map[string]bool)
+                for _, c := range cpeMatches {
+                        seenCPEs[c.CPE] = true
+                }
+                for techEntry, appInfo := range technologyDetails {
+                        if appInfo.CPE == "" {
+                                continue
+                        }
+                        version := ""
+                        appName := techEntry
+                        if idx := strings.Index(techEntry, ":"); idx >= 0 {
+                                appName = techEntry[:idx]
+                                version = techEntry[idx+1:]
+                        }
+                        cpeStr := techCPEWithVersion(appInfo.CPE, version)
+                        if seenCPEs[cpeStr] {
+                                continue
+                        }
+                        seenCPEs[cpeStr] = true
+                        cpeMatches = append(cpeMatches, CPEInfo{
+                                Product: appName,
+                                CPE:     cpeStr,
+                        })
+                }
+        }
+
 	var wpInfo *WordPressInfo
 	if r.wpDetector != nil {
 		wpInfo = r.wpDetector.Detect(string(resp.Data))
